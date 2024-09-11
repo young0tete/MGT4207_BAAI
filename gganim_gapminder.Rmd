@@ -1,0 +1,191 @@
+---
+title: "gganim_gapminder"
+output: html_document
+date: '2022-06-04'
+---
+
+
+<br> <br>
+
+
+```{r}
+# install.packages("Rtools")
+```
+
+<br>
+
+```{r}
+# install.packages(c("gifski", "av", "magick"))
+# install.packages(c("gganimate","gapminder"))
+```
+
+<br>
+
+```{r}
+library(tidyverse)
+library(gganimate)
+theme_set(theme_bw())
+```
+
+
+
+<br> <br>
+
+## Gapminder Data
+
+<br> 
+
+
+
+```{r}
+library(gapminder)
+head(gapminder)
+```
+
+
+<br>
+
+```{r}
+p <- ggplot(
+  gapminder, 
+  aes(x = gdpPercap, y=lifeExp, size = pop, colour = country)
+  ) +
+  geom_point(show.legend = FALSE, alpha = 0.7) +
+  scale_color_viridis_d() +
+  scale_size(range = c(2, 12)) +
+  scale_x_log10() +
+  labs(x = "GDP per capita", y = "Life expectancy")
+p
+```
+
+
+<br>
+
+```{r}
+p + transition_time(year) +
+  labs(title = "Year: {frame_time}")
+```
+
+
+<br>
+
+
+```{r}
+p + facet_wrap(~continent) +
+  transition_time(year) +
+  labs(title = "Year: {frame_time}")
+```
+
+<br>
+
+```{r}
+p + transition_time(year) +
+  labs(title = "Year: {frame_time}") +
+  view_follow(fixed_y = TRUE)
+```
+
+<br>
+
+
+```{r}
+p + transition_time(year) +
+  labs(title = "Year: {frame_time}") +
+  shadow_wake(wake_length = 0.1, alpha = FALSE)
+```
+
+<br>
+
+```{r}
+p + transition_time(year) +
+  labs(title = "Year: {frame_time}") +
+  shadow_mark(alpha = 0.3, size = 0.5)
+```
+
+<br> <br>
+
+## Airquality Data
+
+<br> 
+
+
+```{r}
+p <- ggplot(
+  airquality,
+  aes(Day, Temp, group = Month, color = factor(Month))
+  ) +
+  geom_line() +
+  scale_color_viridis_d() +
+  labs(x = "Day of Month", y = "Temperature") +
+  theme(legend.position = "top")
+p
+```
+
+<br>
+
+```{r}
+p + transition_reveal(Day)
+```
+
+<br>
+
+```{r}
+p + 
+  geom_point() +
+  transition_reveal(Day)
+```
+
+<br>
+
+```{r}
+p + 
+  geom_point(aes(group = seq_along(Day))) +
+  transition_reveal(Day)
+```
+
+
+<br>
+
+
+
+```{r}
+mean.temp <- airquality %>%
+  group_by(Month) %>%
+  summarise(Temp = mean(Temp))
+mean.temp
+```
+
+<br>
+
+```{r}
+p <- ggplot(mean.temp, aes(Month, Temp, fill = Temp)) +
+  geom_col() +
+  scale_fill_distiller(palette = "Reds", direction = 1) +
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    panel.grid.major.y = element_line(color = "white"),
+    panel.ontop = TRUE
+  )
+p
+```
+
+<br>
+
+```{r}
+p + transition_states(Month, wrap = FALSE) +
+  shadow_mark()
+```
+
+<br>
+
+```{r}
+p + transition_states(Month, wrap = FALSE) +
+  shadow_mark() +
+  enter_grow() +
+  enter_fade()
+```
+
+<br><br>
+
+
+

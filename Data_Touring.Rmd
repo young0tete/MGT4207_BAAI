@@ -1,0 +1,734 @@
+---
+title: "Data Touring"
+author: "Y Lee"
+date: "2023-03-06"
+output: html_document
+---
+
+<br>
+
+## Data Touring
+
+<br>
+
+* Data
+
+    - Iris, Penguins
+    
+    - MNIST, Cifar10, Cifar100
+    
+    - Sunspots, Trees, Faithful, Pima
+    
+    - Crab, Olive, Dnut, kyphosis
+    
+    - Diamonds, Starwars, GoogleStockPrice 
+    
+    - Gapminder, MovieLense
+    
+    
+
+<br>
+
+## iris data
+
+<br>
+
+
+
+<br>
+
+```{r}
+
+dim(iris)
+rownames(iris)
+names(iris)
+
+```
+
+<br>
+
+```{r}
+
+names(iris) = c('sl','sw','pl','pw','sp')
+
+names(iris)
+
+```
+
+<br>
+
+```{r}
+
+class(iris$sp)
+
+```
+
+<br>
+
+```{r}
+
+levels(iris$sp)
+
+```
+
+<br>
+
+```{r}
+
+levels(iris$sp) = c('st', 'vc', 'vg')
+
+levels(iris$sp)
+
+```
+
+<br>
+
+```{r}
+
+head(iris)
+tail(iris)
+
+```
+
+
+<br>
+
+```{r, message=FALSE}
+
+library(tidyverse)
+
+```
+
+<br>
+
+
+```{r}
+ggplot(iris)+
+  geom_point( aes(sw,sl,col=sp) )+
+  geom_smooth(method='lm', aes(sw,sl,col=sp), se=F )
+```
+
+<br>
+
+```{r}
+
+ggplot(iris,)+
+  geom_point( aes(sw,sl,col=sp))+
+  geom_smooth(method='lm',  aes(sw,sl), se=F)
+
+
+```
+
+
+<br>
+
+```
+{r}
+
+install.packages("GGally")
+
+```
+
+<br>
+
+```{r}
+
+library(GGally)
+
+```
+
+
+<br>
+
+```{r}
+
+iris %>% ggpairs( aes(col = sp), progress = F )
+
+```
+
+
+<br>
+
+### iris data in python
+
+<br>
+
+```{python}
+
+import numpy as np
+import pandas as pd
+
+```
+
+
+<br>
+
+#### from sklearn
+
+<br>
+
+```{python}
+
+from sklearn.datasets import load_iris  
+
+iris = load_iris()
+
+iris.keys()
+```
+
+<br>
+
+
+```{python}
+
+iris['data'][:10]
+
+```
+<br>
+
+```{python}
+
+iris['target']
+iris['filename']
+
+```
+
+<br>
+
+```{python}
+
+iris['target_names']
+iris['feature_names']
+
+```
+<br>
+
+```{python}
+
+print(iris['DESCR'])
+
+```
+
+<br>
+
+#### from sns
+
+<br>
+
+```{python}
+
+import seaborn as sns
+dir(sns)
+
+```
+
+<br>
+
+```{python}
+
+sns.get_dataset_names()
+
+```
+<br>
+
+```{python}
+
+iris = sns.load_dataset('iris')
+
+iris.__class__
+
+```
+<br>
+
+```{python}
+
+iris.head()
+iris.tail()
+
+```
+
+<br>
+
+```{python}
+
+iris.shape
+iris.index
+iris.columns
+
+```
+<br>
+
+```{python}
+
+iris.columns = ['sl', 'sw', 'pl', 'pw', 'sp']
+
+iris.columns
+
+```
+<br>
+
+```{python}
+
+iris.sp
+
+```
+<br>
+
+```{python}
+
+iris.sp.__class__
+iris.sp.dtype
+
+iris.sp.unique()
+
+```
+
+<br>
+
+```{python}
+sps = iris.sp.unique() # .tolist()
+spz = ['st', 'vc', 'vg']
+
+iris.sp = iris.sp.replace(dict(zip(sps,spz)))
+```
+
+<br>
+
+```{python}
+
+iris.head()
+iris.tail()
+
+```
+
+<br>
+
+```{python}
+
+from plotnine import *
+
+```
+
+
+<br>
+
+```{python}
+
+( 
+   ggplot(iris) + 
+      geom_point( aes( x="sw", y="sl", color="sp" ) ) +
+      geom_smooth( aes( x="sw", y="sl", color="sp"), method="lm", se=False )
+      
+)
+
+```
+
+
+<br>
+
+
+```{python}
+
+( 
+   ggplot(iris) + 
+      geom_point( aes( x="sw", y="sl", color="sp" ) ) +
+      geom_smooth( aes( x="sw", y="sl", color="sp"), method="lm", se=False )
+      
+)
+
+```
+
+
+
+<br>
+
+
+```{python}
+
+( 
+   ggplot(iris) + 
+      geom_point( aes( x="sw", y="sl" ) ) +
+      geom_smooth( aes( x="sw", y="sl" ), method="lm", se=False )
+      
+)
+
+```
+
+
+<br>
+
+
+```{python}
+
+import matplotlib.pyplot as plt
+
+sns.pairplot( iris, hue="sp" , palette="husl", markers=["o", "s", "D"])
+# plt.show()
+
+```
+
+<br>
+
+
+## penguins data
+
+
+<br>
+
+
+
+```
+{r}
+
+install.packages("palmerpenguins")
+
+```
+
+<br>
+
+
+```{r}
+
+library(palmerpenguins)
+
+```
+
+
+<br>
+
+
+
+```{r}
+
+dim(penguins)
+
+```
+
+
+<br>
+  
+```{r}
+
+View(penguins)
+
+```
+
+<br>
+
+```{r}
+
+pengs = na.omit(penguins)
+
+dim(pengs)
+
+```
+
+<br>
+
+```{r}
+
+pengs = na.omit(penguins)
+
+dim(pengs)
+
+```
+
+
+<br>
+
+```{r}
+
+names(pengs)
+
+```
+
+<br>
+
+```{r}
+
+names(pengs) = c( 'sp', 'is', 'bl', 'bd', 'fl', 'bm', 'sx', 'yr')
+names(pengs)
+
+```
+<br>
+
+```{r}
+
+pengs['sp'] %>% unique()
+
+```
+
+
+<br>
+
+```{r}
+
+pengs %>% 
+  group_by(sp,sx) %>%
+  summarise(n=n())
+
+```
+
+
+<br>
+
+```{r}
+
+pengs %>% 
+  group_by(sp,sx) %>%
+  summarise(n=n()) %>%
+  pivot_wider(names_from = sx, values_from = n)
+
+```
+
+
+<br>
+
+```{r}
+
+pengs %>% 
+  ggplot() +
+  geom_point(aes(bd, bl, col=sp)) +
+  geom_smooth(aes(bd, bl, col=sp), method="lm", se=F)
+
+```
+
+<br>
+
+```{r}
+
+pengs %>% 
+  ggplot() +
+  geom_point(aes(bd, bl)) +
+  geom_smooth(aes(bd, bl), method="lm", se=F)
+
+```
+
+<br>
+
+
+### penguins data in sns
+
+
+<br>
+
+```{python}
+
+sns.get_dataset_names()
+
+```
+
+
+<br>
+
+```{python}
+
+penguins = sns.load_dataset('penguins')
+penguins.shape
+
+```
+
+<br>
+
+```{r}
+
+View(penguins)
+
+```
+
+
+<br>
+
+```{python}
+
+pengs = penguins.dropna()
+pengs.shape
+
+```
+
+<br>
+
+```{python}
+
+pengs.columns
+
+```
+
+<br>
+
+```{python}
+
+pengs.columns = ['sp', 'is', 'bl', 'bd',  'fl', 'bm', 'sx']
+
+```
+
+<br>
+
+```{python}
+
+pengs.sp.unique()
+
+```
+
+<br>
+
+```{python}
+
+# pd.options.display.max_rows = None 
+pd.options.display.max_rows = 10 
+pengs
+
+```
+
+
+<br>
+
+
+### penguins data in palmerpenguins
+
+
+<br>
+
+
+
+```{python}
+
+from palmerpenguins import load_penguins
+
+```
+
+
+<br>
+
+
+```{python}
+
+penguins = load_penguins()
+
+penguins.shape
+
+```
+<br>
+
+
+```{python}
+
+penguins = load_penguins()
+penguins.shape
+
+```
+
+<br>
+
+
+```{python}
+
+# pd.options.display.max_rows = None 
+pd.options.display.max_rows = 10 
+penguins
+
+```
+
+
+<br>
+
+
+```{python}
+
+pengs = penguins.dropna()
+pengs.shape
+
+```
+
+
+<br>
+
+
+```{python}
+
+pengs.columns
+
+```
+
+
+<br>
+
+
+```{python}
+
+pengs.columns = ['sp','is', 'bl', 'bd', 'fl', 'bm', 'sx', 'yr']
+pengs.columns
+
+```
+
+<br>
+
+
+```{python}
+
+pengs.sp.unique()
+
+```
+
+
+<br>
+
+
+```{python}
+
+pengs.groupby(["sp","sx"]).count()
+
+```
+
+
+<br>
+
+```{python}
+
+pengs.groupby(["sp","sx"])['yr'].count()
+
+```
+
+<br>
+
+
+```{python}
+
+pengs.groupby(["sp","sx"])['yr'].count().unstack()
+
+```
+
+
+<br>
+
+
+```{python}
+
+(
+
+ggplot(pengs) + 
+    geom_point(aes("bd","bl",color="sp")) +
+    geom_smooth( aes("bd","bl",color="sp"), method="lm", se=False )
+)
+
+```
+
+
+
+<br>
+
+
+```{python}
+
+(
+
+ggplot(pengs) + 
+    geom_point(aes("bd","bl")) +
+    geom_smooth( aes("bd","bl"), method="lm", se=False )
+)
+
+```
+
+
+
+

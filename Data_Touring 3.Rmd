@@ -1,0 +1,427 @@
+---
+title: "Data Touring 3"
+author: "Y Lee"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+<br>
+
+## Data Touring 3
+
+<br>
+
+* Data
+
+    - Iris, Penguins
+    
+    - MNIST, Cifar10, Cifar100
+    
+    - Sunspots, Trees, Faithful
+    
+    - Pima, Crab, Olive, Dnut, kyphosis
+    
+    - Diamonds, Starwars, GoogleStockPrice 
+    
+    - Gapminder, MovieLense
+    
+
+<br>
+
+
+```{r, message=FALSE}
+
+library(tidyverse)
+
+```
+
+
+
+<br>
+
+## MovieLense data
+
+
+<br>
+
+
+GroupLense 프로젝트 [클릭](https://grouplens.org/datasets/movielens/)
+ 
+
+<br> 
+
+```
+{python}
+
+urlretrieve("http://files.grouplens.org/datasets/movielens/ml-1m.zip", "movielens.zip")
+ZipFile("movielens.zip", "r").extractall()
+
+users = pd.read_csv( "ml-1m/users.dat", sep="::", names=["user_id", "sex", "age_group", "occupation", "zip_code"], )
+
+ratings = pd.read_csv( "ml-1m/ratings.dat", sep="::", names=["user_id", "movie_id", "rating", "unix_timestamp"], )
+
+movies = pd.read_csv( "ml-1m/movies.dat", sep="::", names=["movie_id", "title", "genres"] )
+
+```
+
+<br>
+
+```{r}
+url = "http://files.grouplens.org/datasets/movielens/ml-1m.zip"
+
+a_file = "c:/temp/movielens.zip" 
+download.file(url, a_file )
+
+
+temp = readLines( unz( a_file, "ml-1m/users.dat") )
+us_tbl = as_tibble(str_split_fixed(temp,"::",5), .name_repair="minimal")
+names(us_tbl) = c( "us_idn", "sex", "age", "occ", "zip")
+
+
+temp = readLines( unz( a_file, "ml-1m/ratings.dat") )
+rt_tbl = as_tibble(str_split_fixed(temp,"::",4), .name_repair="minimal")
+names(rt_tbl)   = c("us_idn", "mv_idn", "rt", "r_time")
+
+temp   = readLines( unz( a_file, "ml-1m/movies.dat") )  
+mv_tbl = as_tibble(str_split_fixed(temp,"::",3), .name_repair="minimal")
+names(mv_tbl) = c( "mv_idn", "title", "genres")
+
+unlink(a_file)
+
+```
+
+
+<br>
+
+```{r}
+
+us_tbl$us_idn  = as.integer(us_tbl$us_idn)
+us_tbl$age     = as.integer(us_tbl$age)
+us_tbl$occ     = as.integer(us_tbl$occ)
+
+rt_tbl$us_idn  = as.integer(rt_tbl$us_idn)
+rt_tbl$mv_idn  = as.integer(rt_tbl$mv_idn)
+rt_tbl$rt      = as.integer(rt_tbl$rt)
+
+mv_tbl$mv_idn  = as.integer(mv_tbl$mv_idn)
+
+```
+
+<br>
+<br>
+
+no. users  : 6040, 1-6040 (ID)
+
+no. movies : 3706 (rated), 3883 (listed),  1-3952 (ID)
+
+<br>
+
+```{r}
+
+nrow(rt_tbl)
+
+nrow(us_tbl)
+max(us_tbl$us_idn)
+rt_tbl %>% group_by(us_idn) %>% summarise() %>% nrow()
+
+nrow(mv_tbl)
+max(mv_tbl$mv_idn)
+
+rt_tbl %>% group_by(mv_idn) %>% summarise() %>% nrow()
+
+```
+
+<br>
+
+사용자와 영화 쌍에 중복이 있는 지 확인해 보자
+
+<br>
+
+
+```{r}
+
+tbl = rt_tbl %>% 
+       group_by(us_idn, mv_idn) %>%
+       summarise( n=n() )
+
+tbl
+
+```
+
+<br>
+
+```{r}
+
+tbl %>% 
+  group_by(n) %>%
+  summarise(nn=n())
+
+```
+<br>
+
+각 사용자별로 영화를 본 횟수, 많이 본 순서로 정열, 적게 본 순서로 정열
+
+<br>
+
+```{r}
+
+rt_tbl %>% 
+  group_by(us_idn) %>%
+  summarise(n=n())  %T>% 
+  print %>%
+  arrange(desc(n)) %T>%
+  print %>%
+  arrange(n)
+
+```
+
+
+<br>
+
+가장 많이 평가된 영화 50 개에 대한 정보
+
+<br>
+
+```{r}
+
+rt_tbl %>% 
+  group_by(mv_idn)  %>%
+  summarise(n=n())  %>%
+  arrange(desc(n))  %>%
+  .[1:50,]  %>%
+  inner_join(mv_tbl, by="mv_idn") 
+
+```
+
+<br>
+
+동일 사용자가 본 영화들의 순서를 구하기
+
+
+<br>
+
+```{r}
+
+rt_tbl %>%
+  arrange(us_idn, r_time, mv_idn) %>%
+  group_by(us_idn) %>%
+  reframe(    across(mv_idn:r_time),
+              mv_ord = row_number() 
+          )
+
+```
+
+<br>
+
+많이 평가된 영화 순서로 영화 아이디 부여하기, mv_idf 
+
+<br>
+
+```{r}
+
+mvf_tbl  = rt_tbl  %>%
+  group_by(mv_idn) %>%
+  summarise( mv_fq = n() ) %>%
+  arrange( desc(mv_fq) )   %>%
+  mutate( mv_idf = row_number() )
+
+
+mvf_tbl
+```
+
+<br>
+
+많이 평가한 사용자 순서로 사용자 아이디 부여하기, us_idf 
+
+<br>
+
+```{r}
+
+usf_tbl  = rt_tbl %>%
+  group_by(us_idn) %>%
+  summarise( us_fq = n() ) %>%
+  arrange( desc(us_fq) ) %>%
+  mutate( us_idf = row_number() )
+
+
+usf_tbl
+```
+
+
+<br>
+
+rt_tbl 에,  mv_fq, mv_idf, us_fq, us_idf  추가 하기 (rtf_tbl)
+
+<br>
+
+```{r}
+
+rtf_tbl  = rt_tbl %>% 
+  inner_join( mvf_tbl, by="mv_idn") %>%
+  inner_join( usf_tbl, by="us_idn") 
+
+
+rtf_tbl
+```
+
+<br>
+
+rt_tbl 에서,  mv_idn,  us_idn  대신 mv_idf,  us_idf  를 대입하기 (rts_tbl)
+
+<br>
+
+
+```{r}
+
+rts_tbl =  rtf_tbl %>%
+  select(us_idf, mv_idf, rt, r_time ) %>%
+  arrange(us_idf, mv_idf) %T>%
+  print %>%
+  filter( us_idf <= 500, mv_idf <= 500 ) %>%
+  arrange(us_idf, mv_idf)
+
+rts_tbl
+
+```
+
+<br>
+
+rtf_tbl 에서,  mv_idn,  us_idn  에 대한 rt 보기
+
+<br>
+
+```{r}
+
+rtf_tbl %>%  
+  ggplot()+
+  geom_point(  aes( x=us_idn, y=mv_idn,
+               col=factor(rt)),
+               alpha=0.3, size=0.2)+
+  scale_color_brewer(palette = "RdBu")
+
+```
+
+
+<br>
+
+rtf_tbl 에서,  mv_idf,  us_idf  에 대한 rt 보기
+
+<br>
+
+
+```{r}
+
+rtf_tbl %>%  
+  ggplot()+
+  geom_point(  aes( x=us_idf, y=mv_idf,
+               col=factor(rt)),
+               alpha=0.3, size=0.2)+
+  scale_color_brewer(palette = "RdBu")
+
+```
+
+
+<br>
+
+
+```{r}
+
+rtf_tbl %>%  
+  arrange( us_idn, mv_idn) 
+
+```
+
+<br>
+
+사용자 x 영화 평면에서 rt 표 구성하기  (us_idn, mv_idn)
+
+<br>
+
+```{r}
+
+rtf_tbl %>%  
+  arrange( us_idn, mv_idn) %>%
+  select(  us_idn, mv_idn, rt ) %>%
+  pivot_wider( names_from = mv_idn,  
+               values_from = rt,
+               values_fill = 0 )
+  
+```
+
+<br>
+
+사용자 x 영화 평면에서 rt 표 구성하기  (us_idf, mv_idf)
+
+<br>
+
+```{r}
+
+rtf_tbl %>%  
+  arrange( us_idf, mv_idf) %>%
+  select(  us_idf, mv_idf, rt ) %>%
+  pivot_wider( names_from = mv_idf,  
+               values_from = rt,
+               values_fill = 0 )
+  
+```
+
+<br>
+<br>
+
+
+#### Generating many variables automatically
+
+<br>
+
+```{r}
+
+tbl = tibble(x=1:10) %>%
+  mutate( y = 4*abs(rnorm(10)) )
+
+tbl
+
+```
+
+<br>
+
+```{r}
+
+tbl %>% 
+   mutate( y0 = if_else(y > 0, 1, 0),
+           y1 = if_else(y > 1, 1, 0),
+           y2 = if_else(y > 2, 1, 0),
+           y3 = if_else(y > 3, 1, 0)
+           )
+```
+
+<br>
+
+```{r}
+tbl2 = tbl %>% 
+    mutate( cy = ceiling(y) - 1 ) %>%
+    reframe(   x = rep(x,cy+1) ,
+                 y = rep(y,cy+1) ,
+                 v = unlist(  lapply( cy,  
+                                      function(u) seq(0,u)  
+                                     )   
+                            ) ,
+                 one = 1
+              )  %>%
+     pivot_wider(names_from=v, values_from=one, values_fill=0)
+
+tbl2
+```
+
+<br>
+
+```{r}
+
+names(tbl2)[-(1:2)] = paste0("y", names(tbl2)[-(1:2)])
+
+tbl2
+
+```
+
+
+<br>
+<br>

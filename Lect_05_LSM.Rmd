@@ -1,0 +1,562 @@
+---
+title: "Linear Statistical Models"
+author: "Y Lee"
+date: "2023-03-21"
+output:
+    html_document: 
+    fig_width: 9.8
+    fig_height: 7
+always_allow_html: yes
+---
+
+
+
+<br>
+
+```{r setup, echo=FALSE}
+knitr::opts_chunk$set(results='hold') # collapse = TRUE)
+```
+
+<br>
+
+```{r, message=FALSE, echo=FALSE}
+library(tidyverse)
+```
+
+<br>
+-------------------------------
+-------------------------------
+ 
+<br> <br>
+
+ 
+### Topics:
+
+
+<br>
+
+* LSM : Linear Statistical Model 
+    
+    + Singular Model Matrix 
+    
+    + Multivariate Regression
+
+
+<br> <br>
+
+
+-------------------------------
+-------------------------------
+
+<br> <br>
+ 
+#### Singular Model Matrix
+
+<br>
+
+###### Generalized inverse and prediction only model
+
+
+<br>
+
+
+
+* $y = \alpha + \beta x_1  + \epsilon$
+
+<br>
+
+* $y = \alpha + \beta_1 x_1 + \beta_2 x_1 + \epsilon$
+
+
+<br> <br>
+
+```{r}
+
+x1= rnorm(10)
+x2 = x1
+y = 1 + 2*x1 + 0.3*rnorm(10)
+
+dxy = data.frame(x1, x2, y); dxy
+
+ggplot(dxy) + 
+  geom_point(aes(x1,y)) + 
+  geom_smooth(method=lm,aes(x1,y),col='red',se=F)
+```
+
+<br>
+
+* ${\boldsymbol y}= X {\boldsymbol \beta}+{\boldsymbol \epsilon}$
+
+
+<br>
+
+* $X$ 의 각 열들이 선형독립이라면,
+
+    + $X'X$ 의 역행렬 $(X'X)^{-1}$ 을 구할 수 있다
+
+    + ${\hat {\boldsymbol \beta}}=(X'X)^{-1}X' {\boldsymbol y}$ 
+
+    + ${\hat{\boldsymbol y}} = X {\hat            {\boldsymbol \beta}} = X(X'X)^{-1}X' {\boldsymbol y}$
+
+<br>
+
+* 역행렬 $(X'X)^{-1}$을 구할 수 없는 경우에는 어떤 문제가 발생할까?
+
+<br>
+
+* 다음에서 행렬 $A$ 는 모든 열이 선형독립,
+
+     행렬 $B$ 는 독립이 아닌 경우가 있음.
+
+<br>
+
+```{r}
+
+A = cbind(1,x1); A
+
+B = cbind(1,x1,x2); B
+```
+
+
+<br>
+
+```{r}
+
+out_A = lm(y~x1,dxy); out_A
+
+out_B = lm(y~x1+x2,dxy); out_B
+```
+
+
+<br>
+
+
+```{r}
+X = A   
+
+#  X = B  라고 하면 ... error 남
+
+bhat_A = solve( t(X) %*% X ) %*% t(X) %*% y
+yhat_A = X %*% bhat_A
+
+rbind( coef(out_A),
+       t(bhat_A)
+     )
+
+cbind( predict(out_A),
+       yhat_A
+     )
+```
+
+<br>
+
+* 일반화 역행렬 $(X'X)^{-}$을 사용하면,
+
+    $A, B$ 두 경우 다 답을 얻을 수 있다.
+
+
+<br>
+
+```{r, message=F, warning=F}
+library(MASS)
+
+X = A
+
+bhat_A = ginv( t(X) %*% X ) %*% t(X) %*% y
+yhat_A = X %*% bhat_A
+
+# out_A = lm(y~x,dxy)
+
+rbind( coef(out_A),
+       t(bhat_A)
+     )
+
+cbind( predict(out_A),
+       yhat_A
+     )
+```
+
+
+```{r}
+X = B
+
+bhat_B = ginv( t(X) %*% X ) %*% t(X) %*% y
+yhat_B = X %*% bhat_B
+
+# out_B = lm(y~x+v,dxy)
+
+rbind( coef(out_B),
+       t(bhat_B)
+     )
+
+cbind( predict(out_B),
+       yhat_B
+     )
+```
+
+<br>
+
+* 이 때 $\hat{\boldsymbol \beta}$ 의 값은 유일하지 않다
+
+<br>
+
+* 그런 경우라고 하더라도, $\hat{\boldsymbol y}$ 은 항상 일정하다.
+
+<br>
+
+* 행렬 $X$ 의 각 열들이 선형독립이면,
+
+    + $(X'X)^{-1}$ 를 구할 수 있고, 유일하다.
+
+    + $(X'X)^{-} = (X'X)^{-1}$ 이다.
+    
+<br>
+
+* 행렬 $X$ 의 각 열들이 선형독립인 것이 아니라면,
+
+    + $(X'X)^{-1}$ 를 구할 수 없다. 
+
+    + 일반화 역행렬 $(X'X)^{-}$ 은 구할 수 있다. 
+    
+    + $(X'X)^{-}$ 유일하지 않다. 
+    
+    + $X(X'X)^{-}X$ 는, $(X'X)^{-}$ 에 관계없이, 유일하다. 
+
+    + ${\hat {\boldsymbol \beta}}$ 이 유일하지 않다.
+    
+    + ${\hat {\boldsymbol y}}$ 은 유일하다.
+    
+    + 이런 경우가 Prediction Only Model 에 해당된다.
+
+<br>
+
+* 이는 신경망(Neural Net)의 성질을 이해할 때 매우 중요한 사항임.
+
+<br>
+
+* 신경망의 가중치(weights)는 회귀계수에 해당하고, 그 값이 유일하지 않지만, 
+    
+    예측치는 그에 관계없이 유일하게 얻어진다.
+
+<br> <br>
+
+-------------------------------
+-------------------------------
+
+<br> <br>
+
+ 
+#### Multivariate Regression
+
+<br> <br>
+
+* Multiple Regression : $x$ 변수가 여러 개인 경우
+
+<br>
+
+* Multivariate Regression : $y$ 변수가 여러 개인 경우
+
+    + 이 경우에는 당연히 $x$ 변수도 여러 개라고 상정하는 것이 타당함.
+ 
+<br>
+
+##### **(1) 모형**
+
+<br>
+
+* Model : ${\boldsymbol y} = {\boldsymbol x} B + {\boldsymbol \epsilon}$, $~~~{\boldsymbol \epsilon}~\sim~N_m ({\boldsymbol 0}, \Sigma )$
+
+
+<br>
+
+* Data :  $D=\{ ({\boldsymbol y}_i , {\boldsymbol x}_i) | 
+i=1,2, \ldots,n  \}$
+
+
+<br> 
+
+
+* Matrix Model for Data:   $Y = X B + E$
+
+
+<br>
+
+* $\begin{pmatrix}
+y_{11},&y_{12},&\ldots,&y_{1m}\\
+y_{21},&y_{22},&\ldots,&y_{2m}\\
+y_{31},&y_{32},&\ldots,&y_{3m}\\
+\vdots,&\vdots,&\ddots,&\vdots\\
+y_{n1},&y_{n2},&\ldots,&y_{nm}\\
+\end{pmatrix}
+ = \begin{pmatrix}
+1,&x_{11},&x_{12},&\ldots,&x_{1p}\\
+1,&x_{21},&x_{22},&\ldots,&x_{2p}\\
+1,&x_{31},&x_{32},&\ldots,&x_{3p}\\
+\vdots,&\vdots,&\vdots,&\ddots,&\vdots\\
+1,&x_{n1},&x_{n2},&\ldots,&x_{np}
+\end{pmatrix}
+\begin{pmatrix}
+\beta_{01},&\beta_{02},&\ldots,&\beta_{0m}\\
+\beta_{11},&\beta_{12},&\ldots,&\beta_{1m}\\
+\beta_{21},&\beta_{22},&\ldots,&\beta_{2m}\\
+\vdots,&\vdots,&\ddots,&\vdots\\
+\beta_{p1},&\beta_{p2},&\ldots,&\beta_{pm}\\
+\end{pmatrix}
++\begin{pmatrix}
+\epsilon_{11},&\epsilon_{12},&\ldots,&\epsilon_{1m}\\
+\epsilon_{21},&\epsilon_{22},&\ldots,&\epsilon_{2m}\\
+\epsilon_{31},&\epsilon_{32},&\ldots,&\epsilon_{3m}\\
+\vdots,&\vdots,&\ddots,&\vdots\\
+\epsilon_{n1},&\epsilon_{n2},&\ldots,&\epsilon_{nm}\\
+\end{pmatrix}$
+
+
+<br> <br>
+
+##### **(2) 생각해 볼 사항**
+
+<br>
+
+* 다변량 모형과 단변량 모형을 여러번 적합 하는 경우를 비교해 보자.
+
+    + 다변량 회귀모형: $Y = X B + E$
+
+    + 여러개의 단변량 회귀모형:  
+    
+        - $y_{j} =  {\boldsymbol x} {\boldsymbol \beta}_j + {\boldsymbol \epsilon}_j$, $~~j=1,\ldots,m\\[.05in]$
+
+    + 두 모형에서 모수들의 추정량은 동일할까??
+
+        - 즉, $\hat{B}=( \hat{\boldsymbol \beta}_1 , \ldots, \hat{\boldsymbol \beta}_m  )\\[.05in]$  ??
+        
+        - 또, 오차항의 분산들에 대한 추정량은 동일할까?
+    
+    + 만약 모수들의 추정량이 동일하다면, 다변량 회귀를 고려하는 이유는?
+    
+    
+    
+<br> <br>
+
+```{r}
+names(iris) <- c('sl','sw','pl','pw','sp')
+levels(iris$sp) <- c('st','vc','vg')
+
+dim(iris)
+
+head(iris)
+```
+
+<br>
+
+* 다변량 회귀에서, y 변수는 cbind 로 묶는다
+
+```{r}
+out <- lm(cbind(sl,sw) ~ pl+sp, iris)
+coef(out)
+```
+
+<br>
+
+* 두 개의 단변량 회귀계수의 결과
+
+
+```{r}
+coef( lm(sl ~ pl+sp, iris) )
+
+coef( lm(sw ~ pl+sp, iris) ) 
+```
+
+<br>
+
+
+* MLE of $\Sigma$: 
+
+    + $\hat{\Sigma}  = (1/n) \hat{E}' \hat{E} = (1/n) (Y-X \hat{B})'(Y-X \hat{B})$  
+    
+<br>
+
+* SSE 
+
+```{r}
+t(resid(out)) %*% resid(out)
+
+crossprod(resid(out))
+```
+
+<br>
+
+* MLE and UE 
+
+```{r}
+crossprod(resid(out)) /150       # 잔차 공분산의 MLE
+
+crossprod(resid(out)) /(150-4)   # 잔차 공분산의 Unbiased Estimator 
+```
+
+<br>
+
+```{r}
+
+anova(lm(sl~pl+sp,iris))
+
+anova(lm(sw~pl+sp,iris))
+```
+
+<br>
+
+* 다변량 모형과 개별 모형에서 분산의 추정도 동일 
+
+    + var(sl) = 0.1142,  var(sw) = 0.0996
+
+
+<br>
+
+
+* 다변량 모형에서는 Cov(sl,sw) = 0.04 추정이 된다.
+    
+<br> <br>
+
+
+* 다변량회귀를 고려해야 하는 이유는 ....
+
+    + $Cov(\epsilon_j, \epsilon_l )$ 에 대한 추정
+    
+    + $B= ({\boldsymbol \beta}_1, \ldots, {\boldsymbol \beta}_m)$ 에 대한 동시 추론
+    
+        - 신뢰구간, 가설검정
+    
+<br>
+
+<br> 
+
+-------------------------------
+
+<br> <br>
+
+
+* Testing for $~~H_0 :  C B = \Gamma_0$ (선형가설의 일반적 형태) 
+
+    + Typically, $~~H_0 :  B_{(2)} = {\boldsymbol 0}$, where $B = \begin{pmatrix}B_{(1)} \\ B_{(2)} \end{pmatrix}$
+    
+    + $\hat{\Sigma}_1  = (1/n) (Y-X \hat{B}_{(1)})'(Y-X \hat{B}_{(1)})$
+
+    + $S = n \, \hat{\Sigma}$, $~~ H = n \,(\hat{\Sigma}_1 - \hat{\Sigma})$ 
+   
+    + Wilks' lambda :  $W=|S|/|S+H|$,  the LRT
+    
+    + **Pillai's trace** :  $tr(H(H+S)^{-1})$
+    
+    + Hotelling-Lawley trace: $tr(HS^{-1})$
+   
+    + Roy's largest root: $~\max_p \, \lambda_p,~~$  where $~\lambda_p~$ are the eigenvalues of $~HS^{-1}~$
+    
+<br>
+
+* 회귀계수 행렬 $B$ 에 대한 가설검정
+
+```{r}
+anova(out)
+```
+
+```{r, warning=F, message=F}
+library(car)   # Companion to Applied Regression
+
+linearHypothesis( out, 
+      hypothesis.matrix = 
+      c("spvg=0","spvc=0")
+)
+```
+
+
+<br> <br>
+
+
+##### **(3) 비교해볼 사항**
+
+<br>
+
+다음 세 가지 방법 A, B, C의 차이는 무엇일까?
+
+
+<br>
+
+* **A-방법**:  
+
+<br>
+
+```{r}
+coef( lm(sl ~ pl+sp, iris) )
+
+coef( lm(sw ~ pl+sp, iris) ) 
+
+anova( lm(sl ~ pl+sp, iris) )
+
+anova( lm(sw ~ pl+sp, iris) ) 
+```
+
+<br>
+
+* **B-방법**:  
+
+<br>
+
+```{r}
+
+coef( lm( cbind(sl,sw) ~ pl+sp, iris) )
+
+anova( lm( cbind(sl,sw) ~ pl+sp, iris) )
+
+```
+
+<br>
+
+* **C-방법**: 
+
+<br>
+
+```{r}
+head(iris)
+
+tail(iris)
+
+dim(iris)
+```
+
+<br>
+
+```{r, warning=F, message=F}
+
+library(reshape2)
+
+iris_long = melt(iris, id=c('pl','pw','sp'), measure=c('sl','sw'))
+
+names(iris_long) = c('pl','pw','sp','vn','y')
+
+dim(iris_long)
+
+head(iris_long)
+
+tail(iris_long)
+```
+
+```{r}
+
+out = lm(y~ vn+vn:pl+vn:sp-1, iris_long)
+
+out
+
+matrix(coef(out),2,4)
+
+anova(out)
+```
+
+<br>
+
+Hint: 분산을 비교해보자 
+
+<br> <br>
+
+-------------------------------
+-------------------------------
+
+<br> <br>

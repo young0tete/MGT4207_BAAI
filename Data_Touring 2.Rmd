@@ -1,0 +1,851 @@
+---
+title: "Data Touring 2"
+author: "Y Lee"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+<br>
+
+## Data Touring 2
+
+<br>
+
+* Data
+
+    - Iris, Penguins
+    
+    - MNIST, Cifar10, Cifar100
+    
+    - Sunspots, Trees, Faithful
+    
+    - Pima, Crab, Olive, Dnut, kyphosis
+    
+    - Diamonds, Starwars, GoogleStockPrice 
+    
+    - Gapminder, MovieLense
+    
+    
+
+<br>
+
+## sunspots data
+
+
+<br>
+
+R에는 sunspots 이라는 이름으로, 태양의 흑점을 기록한 자료가 들어 있다. 
+
+<br>
+ 
+
+[help(sunspots) ](https://stat.ethz.ch/R-manual/R-devel/library/datasets/html/sunspot.month.html)
+ 
+<br> 
+ 
++ sunspots 자료는 태양 흑점 개수의 월별 평균값을 기록한 자료
+
++ 1794년부터 1959년 까지는 스위스 연방 관측소에서 관측한 자료, 
+
++ 1960년 이후는 도쿄천문대에서 관측한 자료에서 수집.
+
+
+
+<br>
+
+```{r}
+class(sunspots)
+tsp(sunspots)
+```
+
+<br>
+
+```{r}
+length(sunspots)
+(1983-1749+1)*12
+attributes(sunspots)
+
+```
+
+<br>
+
+```{r message=FALSE}
+
+library(tidyverse)
+
+```
+
+<br>
+
+```{r}
+
+xt = 1749+((1:2820)-1)/12
+spots = sunspots
+  
+pp = ggplot() + 
+  geom_point(aes( xt, spots), size=0.4) +
+  xlab('time(year)')+
+  ylab('monthly average no sunspots')
+
+pp
+```
+
+
+<br>
+
+
+```{r}
+
+res = loess(spots~xt,span=0.2)
+ppr = pp+geom_line(aes(xt,predict(res)),col="red")
+ppr
+
+```
+
+<br>
+
+
+```{r}
+
+res = loess(spots~xt,span=36/2820)
+ppr = pp+geom_line(aes(xt,predict(res)),col="red", size=0.4)
+ppr
+
+```
+
+
+<br>
+
+##  trees 데이터
+
+<br>
+
+* 체리나무 31 그루에 대하여, Girth, Height, Volume 세 변수를 측정한 자료
+
+ 
+* trees 데이터 설명: [help(trees)](https://stat.ethz.ch/R-manual/R-devel/library/datasets/html/trees.html)
+
+
+* 사용상 편의를 위하여, 세 변수의 이름을, 각각 g, h, v 로 바꿈
+
+    + Girth (g)
+    + Height (h)    
+    + Volume (v)
+
+
+<br>
+
+```{r}
+
+names(trees)<- c('g','h','v')
+
+head(trees)
+tail(trees)
+
+```
+
+<br>
+
+
+* trees 데이터에서 세 변수 사이의 관계 탐색 
+
+<br>
+
+
+```{r}
+
+library(GGally)
+
+```
+
+<br>
+
+```{r}
+
+ggpairs(trees, lower=list(continuous=wrap('smooth', method='loess', col='red')))
+
+```
+
+<br>
+
+
+<br>
+
+
+#### 1. MARS를 이용한 평활 방법들
+
+
+<br>
+
+* **GAM** : Generalized Additive Model
+
+* **MARS** : Multivariate Adaptive Regression Splines
+
+
+<br>
+
+
+* MARS 에 대한 소개: [MARS in wiki](https://en.wikipedia.org/wiki/Multivariate_adaptive_regression_splines)
+
+
+<br>
+
+
+* mda 패키지:
+
+    + mda : Mixture and flexible Discrimnant Analysis
+
+    + Originated from Hastie \& Tibshirani
+
+    + Useful functions :  mars, fda, gen.ridge 
+
+
+<br>
+
+
+####  2. MARS 수행 R 패키지
+
+<br>
+
+* **mda::mars**, by Hastie \& Tibshirani  
+
+* **earth::earth**, by Stephen Milborrow
+
+<br>
+
+* mda::mars 의 적용
+
+<br>
+
+
+```{r}
+
+# install.packages(c("mda","earth"))
+
+library(mda)
+library(earth)
+
+```
+
+
+<br>
+
+```{r}
+
+xx  <-  model.matrix(v~.-1, data=trees)
+y   <-  trees$v
+res <-  mars(xx,y,degree=2)
+
+coef(res)
+
+```
+
+
+<br>
+
+* earth::earth 함수는, summary 메쏘드에 의하여 추정함수식을 제공 
+
+<br>
+
+
+```{r}
+
+rex <- earth(v ~ ., trees, degree=2 )
+summary(rex, style='pmax')
+
+```
+
+
+<br>
+
+#### 3. 결과의 비교
+
+<br>
+
+* expand.grid 함수를 이용하여 관심 영역에 대한 3x3 격자점을 구성
+
+<br>
+
+```{r}
+gsn <- seq(min(trees$g),max(trees$g),l=3)
+hsn <- seq(min(trees$h),max(trees$h),l=3)
+( egh <- expand.grid(g=gsn,h=hsn)  )
+```
+
+
+<br>
+
+
+* egh 의 9 개 격자점에 대한 예측값
+
+
+    + mda::mars 에 대한 함수 predict.mars
+
+    + earth::earth 에 대한 함수 predict.earth 
+
+
+<br>
+
+
+* earth::earth 와 mda::mars 는 비슷하지만 다른 수치를 제공함
+
+
+<br>
+
+```{r}
+
+prd.mars   <-  predict(res,new=egh)
+prd.earth  <-  predict(rex,new=egh)
+
+cbind(prd.mars,prd.earth)
+
+```
+
+
+<br>
+
+
+#### 4. 추정함수평면의 시각적 표현 
+
+
+<br>
+
+* plotly 패키지에 의한 대화형 3차원 그림 
+
+* egh 를 30x30 격자점으로 구성 
+
+
+<br>
+
+
+* prd.mars :  egh 격자점들에 대하여 mda::mars 로부터 얻은 예측값
+
+* prd.earth :  egh 격자점들에 대하여 earth::earth 로부터 얻은 예측값
+
+
+<br>
+
+
+```{r}
+
+gsn <- seq(min(trees$g),max(trees$g),l=30)
+hsn <- seq(min(trees$h),max(trees$h),l=30)
+egh <- expand.grid(g=gsn,h=hsn)  
+
+prd.mars <- matrix(predict(res, new=egh),length(gsn), length(hsn))
+prd.earth <- matrix(predict(rex, new=egh),length(gsn),length(hsn))
+
+```
+
+<br>
+
+
+#####  mda::mars 에 의하여 얻은 추정함수평면
+
+<br>
+
+```{r}
+
+# install.packages("plotly")
+library(plotly)
+
+```
+
+<br>
+
+```{r}
+pp <- plot_ly(z=~t(prd.mars),x=gsn, y=hsn) 
+pp <- add_surface(pp) 
+pp <- add_markers(pp, x=~trees$g, y=~trees$h, z=~trees$v, size=0.8)
+
+layout(pp, title="model surface and obvservations", 
+               scene=list(xaxis=list(title="G"), 
+                         yaxis=list(title="H"), 
+                         zaxis=list(title="V")
+              ))
+```
+
+<br>
+
+
+#####  earth::earth 에 의하여 얻은 추정함수평면
+
+
+<br>
+
+* 추정함수평면은 mda::mars 와 earth::earth 경우 큰 차이가 없다
+
+<br>
+
+```{r}
+
+pp <- plotly::plot_ly(z=~t(prd.earth),x=gsn, y=hsn) 
+pp <- plotly::add_surface(pp) 
+pp <- plotly::add_markers(pp, x=~trees$g, y=~trees$h, z=~trees$v, size=0.8)
+
+plotly::layout(pp, title="model surface and obvservations", 
+               scene=list(xaxis=list(title="G"), 
+                         yaxis=list(title="H"), 
+                         zaxis=list(title="V")
+              ))
+
+```
+
+
+<br>
+
+
+##  iris 데이터, regrssion
+
+<br>
+
+```{r}
+
+names(iris) = c('sl','sw','pl','pw','sp')
+levels(iris$sp) = c('st', 'vc', 'vg')
+
+```
+
+<br>
+
+```{r}
+swsn <- seq(min(iris$sw),max(iris$sw),l=30)
+slsn <- seq(min(iris$sl),max(iris$sl),l=30)
+( eswsl <- expand.grid(sw=swsn,sl=slsn)  )[1:10,]
+
+```
+
+
+<br>
+
+```{r}
+
+xx  <-  model.matrix(pl~sw+sl-1, data=iris)
+y   <-  iris$pl
+res <-  mars(xx,y,degree=1)
+
+prd.mars <- matrix( predict(res, new=eswsl),length(swsn), length(slsn))
+
+```
+
+
+<br>
+
+
+```{r}
+
+pp <- plotly::plot_ly( z = ~t(prd.mars), x=swsn,  y=slsn ) 
+pp <- plotly::add_surface(pp) 
+pp <- plotly::add_markers(pp, x=~iris$sw, y=~iris$sl, z=~iris$pl, size=0.8)
+
+plotly::layout(pp, title="model surface and obvservations", 
+               scene=list( xaxis=list(title="sw"), 
+                           yaxis=list(title="sl"), 
+                           zaxis=list(title="pl")
+              ))
+```
+
+<br>
+
+
+<br>
+
+
+
+
+##  Useful libraries and functions for classification
+
+
+<br>
+
+#### Draw function for show various 2D classification results 
+
+<br>
+
+```{r}
+
+install_packages_7 <- function(){
+  
+    installed_pkgs <- .packages(all = TRUE)
+    
+    pks <- c("tidyverse", "patchwork", "GGally")
+    pks <- c(pks, "scales", "MASS", "nnet", "rpart")
+    pks <- c(pks,"partykit", "e1071", "caret")
+    pks <- c(pks, "kernlab", "cepp")
+  
+    install.packages(pks[!(pks %in% installed_pkgs)]) 
+}
+
+
+library_7 <- function(){
+
+    require(tidyverse,quietly=T)
+    require(patchwork,quietly=T)
+    require(GGally,quietly=T)
+    require(scales,quietly=T)
+    require(MASS,quietly=T)
+
+    require(nnet,quietly=T)
+    require(rpart,quietly=T)
+    require(partykit,quietly=T)
+    require(e1071,quietly=T)
+    require(caret,quietly=T)
+    require(kernlab,quietly=T)
+}
+
+
+install_packages_7()  
+library_7()  
+```
+
+
+<br>
+<br>
+
+#### Draw function for show various 2D classification results 
+
+<br>
+
+
+```{r}
+
+
+type_fix <- function(res){
+  type=class(res)
+  if('multinom' %in% type) type='multinom' # nnet
+  if('lda' %in% type) type='lda'     # MASS
+  if('qda' %in% type) type='qda'     # MASS
+  if('nnet' %in% type) type='nnet'   # nnet
+  if('rpart' %in% type) type='rpart' # rpart
+  if('party' %in% type) type='party' # partikit
+  if('svm' %in% type) type='svm'     # e1071
+  if('train' %in% type) type='train' # caret
+  type
+}
+
+
+
+
+predict_cases<-function(res,new){
+  
+  type = type_fix(res)
+  
+  p_sp =rep( '0', nrow(new) )
+  
+  if(type %in% c('lda','qda')) p_sp  = 
+    predict(res, newdata=new)$class  
+  if(type %in% c('multinom','rpart','nnet')) p_sp  =  
+    predict(res, newdata=new, type="class") 
+  if(type %in% c('party','svm')) p_sp  =  
+    as.vector(predict(res, newdata=new))
+  if(type %in% c('train')) p_sp  =  
+    predict(res, newdata=new, type="raw")
+  as.character(p_sp)
+}
+
+
+
+is_a_leaf <-function(fm){
+  
+  out = TRUE
+  if( is.call(fm) ) 
+    if( length(fm)>2 )
+      if( (fm[[1]]=='+')|(fm[[1]]=='-') )  out=FALSE
+  out      
+}  
+
+
+
+leafs <- function(res){
+  v = NULL
+  fx = res
+  while(!is_a_leaf(fx)){
+    v = c(fx[[3]],v)
+    fx = fx[[2]]
+  }
+  c(fx,v)
+}
+
+
+
+
+Draw <- function(res, border=1, axis=1, np=100){
+  
+  type = type_fix(res)
+  
+  callx  =  res$call
+  df     =  callx[[3]]
+  fm     =  callx[[2]]  
+  
+  if( type %in% c('party') ){
+    df0    =  res$data
+    df     =  as.name('df0')
+    fm     =  res$terms       }
+  
+  vy     =  fm[[2]]
+  terms  =  leafs(fm[[3]])
+  cterms =  as.character(terms)
+  pos    =  which(sapply(terms, is.name))
+  
+  q1     =  as.name(cterms[pos][1])
+  q2     =  as.name(cterms[pos][2]) 
+  
+  if(axis==0){
+    q1     =  as.name(cterms[pos][2])
+    q2     =  as.name(cterms[pos][1])  }
+  
+  x1     =  eval(q1, eval(df))  
+  x2     =  eval(q2, eval(df))
+  
+  x1q    =  seq( min(x1), max(x1), l=np)
+  x2q    =  seq( min(x2), max(x2), l=np)
+  
+  new    =  expand.grid( x=x1q,  y=x2q )
+  names(new) = as.character(c(q1,q2))
+  
+  cp_0   =  predict_cases(res,eval(df))
+  cp_1   =  as.character(eval(vy, eval(df))) 
+  p_1    =  factor(cp_1)
+  dfz    =  eval(df)[cp_0!=cp_1,]
+  dfz$p  =  p_1[cp_0!=cp_1]
+  
+  cp_sp  =  predict_cases(res,new)
+  p_sp   =  factor(cp_sp, levels=levels(p_1))
+  new_p  =  data.frame( new, p_sp )
+  
+  p<- eval( bquote( 
+    ggplot(.(df)) + 
+      geom_point( aes(.(q1),.(q2), col=.(vy)))+
+      geom_point(data= new_p, 
+                 aes(.(q1),.(q2), col=p_sp),size=0.1,alpha=0.2) +
+      geom_point(data=dfz,
+                 aes(.(q1),.(q2),col=p ),shape=1,size=4)+
+      geom_point( aes(.(q1),.(q2), col=.(vy)), size=1.4)
+    #+theme_light()
+  ) )
+  if(border==1){
+    z_sp = factor(cp_sp)
+    K = length(levels(z_sp))
+    if(K>1){
+      zzz<-diag(K)[z_sp,]
+      for(k in 1:K){
+        new_z <- new_p
+        new_z$z <- zzz[,k]
+        p<-p + eval( bquote( geom_contour(data=new_z,
+                                          aes(.(q1),.(q2),z=z), 
+                                          breaks=0.5, size=0.1, col="black") 
+        ))
+      }
+    }
+  }
+  p
+}
+
+
+```
+
+
+<br>
+<br>
+
+
+##  iris 데이터, classification (multiclass logistic regression)
+
+
+<br>
+
+
+```
+{r}
+
+# install.packages("nnet")
+
+library(nnet)
+```
+
+<br>
+
+
+```
+{r}
+
+# install.packages("patchwork")
+
+library(patchwork)
+```
+
+<br>
+
+```{r}
+r_LRA <- multinom(sp ~ sw+sl, data=iris, maxit=300)
+
+summary(r_LRA)
+
+# 'Draw' is in appendix
+
+p1 <- Draw(r_LRA)+labs(title="LRA")
+
+cm <- matrix(0,3,3)
+cm[1:2,] <- coef(r_LRA)
+cm[3,]   <- cm[2,] - cm[1,]
+cm[,3]   <- -1*cm[,3]
+
+p2 <- Draw(r_LRA)+labs(title="LRA")
+colx <- c("red","blue","green")
+
+for(k in 1:3){
+   p2 <- p2 + 
+         geom_abline(intercept=cm[k,1]/cm[k,3],
+         slope=cm[k,2]/cm[k,3],col=colx[k],size=1) 
+}
+
+p1+p2+plot_layout(guides="collect")
+
+round(coef(r_LRA),3)
+```
+
+
+<br>
+<br>
+
+
+## Classification of Italian Olive Oils
+
+<br>
+
+Olive Data:
+
+* ggobi 배포 자료
+
+* R 에서는, cepp 패키지에 포함되어 있음
+
+* 이탈리아 올리브유 572 건에 대한 지방산 8종의 비율
+
+* 생산지역( 3개 대지역, 9개 소지역)
+
+<br>
+
+![이탈리아 올리브유 생산지역](img/olive_map.png)
+
+
+<br>
+
+```{r}
+set_olive <- function(inc=c(1,2)){
+  
+    require(tidyverse,quietly = T)
+  
+    if(!("cepp" %in% .packages(all = TRUE))) install.packages("cepp") 
+  
+    require(cepp,quietly = T)
+    data(olive)
+
+    olivex <- olive
+    names(olivex)<-c("rg","ar","pt","po","st","ol","lo","ln","ac","es")
+
+    rg          <- factor(olivex$rg)
+    levels(rg)  <- c("S","R","N")
+    olivex$rg   <- factor(rg,levels=c("S","R","N"))
+  
+    ar  <- factor(olivex$ar)
+    arf <- factor(ar,levels=levels(ar)[c(6,1,7,5,2,4,8,3,9)])
+   
+    x  <- levels(arf) %>% 
+              tolower() %>% 
+              str_replace("east","e") %>% 
+              str_replace("west","w") %>%
+              str_replace("south","s") %>%
+              str_replace("north","n") %>%
+              str_replace("coast","c") %>%
+              str_replace("inland","i") 
+    
+    y  <- str_split(x,"-",simplify=T)
+    y1 <- str_sub(y[,1],1,4)
+    y2 <- str_sub(y[,2],1,4)
+    
+    short <- paste0(c("S","S","S","S","R","R","N","N","N"),
+           "_", y1,"_", y2) %>% str_replace_all("_$","")
+    
+    levels(arf) <- short
+    olivex$ar <- arf
+    
+    indx = c( intersect((1:2),inc), 3:10)
+    olivex[,indx]
+}
+```
+
+<br>
+
+```{r}
+olive1 <- set_olive(1)
+olive2 <- set_olive(2)
+
+with(olive1,table(rg))
+with(olive2,table(ar))
+with(set_olive(),table(rg,ar))
+```
+
+
+
+<br>
+<br>
+
+```{r}
+
+# fitting model:  
+# ar ~ lo + es ; linoleic(lo), eicosenoic(es)
+
+roc_LDA  <- train(ar~lo+es, olive2, method="lda")
+roc_NNET <- train(ar~lo+es, olive2, method="nnet",
+                  maxit=300, trace=F)
+roc_TREE    <- train(ar~lo+es, olive2, method="rpart")
+roc01a_TREE <- as.party(rpart(ar~lo+es, olive2, cp=0.01))
+roc_SVM  <- train(ar~lo+es, olive2, method="svmRadial")
+
+( pm <- t(roc_TREE$bestTune) )
+```
+
+
+<br>
+
+```{r}
+# confusion matrix
+
+x1<- table(olive2$ar, predict(roc_LDA))
+x2<- table(olive2$ar, predict(roc_NNET))
+x3<- table(olive2$ar, predict(roc_TREE))
+x301a<- table(olive2$ar, predict(roc01a_TREE))
+x4<- table(olive2$ar, predict(roc_SVM))
+
+
+# accuracy
+
+sum(diag(x1))/sum(x1)
+sum(diag(x2))/sum(x2)
+sum(diag(x3))/sum(x3)
+sum(diag(x301a))/sum(x301a)
+sum(diag(x4))/sum(x4)
+```
+
+<br>
+
+```{r}
+# accuracy
+
+p1<- Draw(roc_LDA)+labs(title="LDA")
+p2<- Draw(roc_NNET)+labs(title="NNET")
+p3<- Draw(roc01a_TREE)+labs(title="TREE")
+p4<- Draw(roc_SVM)+labs(title="SVM")
+
+
+(p1+p2)/(p3+p4)+plot_layout(guides="collect")
+```
+
+
+<br>
+<br>
+
+
+
+
+

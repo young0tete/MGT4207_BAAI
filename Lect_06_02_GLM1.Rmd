@@ -1,0 +1,578 @@
+---
+title: "GLM_1"
+output: html_document
+---
+
+
+
+<br>
+
+```{r setup, echo=FALSE}
+
+knitr::opts_chunk$set(results='hold') 
+#(collapse = TRUE)
+
+```
+
+<br>
+
+```{r, message=F, warning=F, echo=F}
+library(tidyverse)
+```
+
+<br>
+
+-------------------------------
+-------------------------------
+
+<br> 
+
+ 
+#### **A**. GLM Data Analysis 
+
+<br>
+
+* Poisson regression
+
+    + **AIDS 데이터**
+
+    + **InsectSprays 데이터**
+    
+    + hmclearn::Gdat 데이터
+
+    + warpbreaks 데이터
+
+    + faraway::gala 데이터
+    
+    + asbio::crabs 데이터 (Agresti Crab 데이터)
+
+    + admission 데이터 (가상자료)
+    
+      [[Click !!]](https://stats.oarc.ucla.edu/r/dae/poisson-regression/)
+
+
+  
+<br> <br>
+
+
+* Binomial regression
+
+    + **Tobacco Budworm (담배나방) 데이터**
+    
+    + MASS::snails 데이터
+
+    + MASS::OME 데이터
+
+
+
+<br>
+
+
+* Binary Classification
+    
+    + **MASS::Pima.tr 피마인디언 당뇨병 데이터**
+    
+    + iris binary
+
+    + **MASS::crabs 데이터 (sp, sex)**
+    
+    + MASS::Melanoma 데이터 
+    
+    + admission 데이터
+    
+      [[Click !!]](https://stats.oarc.ucla.edu/r/dae/logit-regression/)
+
+
+<br>
+
+#### **B**. glmnet & Classification
+
+<br>
+
+* 다그룹 분류(multiclass classification)는, GLM 방법으로 접근할 수 있지만,
+
+    + glmnet 혹은 classification 으로 접근하기도 함
+   
+    + Tree, SVM, Neural Net 등의 다른 방법을 이용할 수 있음
+
+    + penalized regression 을 공부한 이후 함께 살펴보게 됨
+
+<br>
+
+* Multiclass Classification
+
+    + **iris 데이터**
+    
+    + GGally::flea 데이터 
+  
+    + **MASS::crabx 데이터 (spsex)**
+    
+    + **palmerpenguines::penguins 데이터**
+    
+    + **dnut 데이터**
+    
+    + **cepp::olive 데이터**
+
+    + admission 데이터
+    
+      [[Click !!]](https://stats.oarc.ucla.edu/r/dae/multinomial-logistic-regression/)
+  
+
+<br> <br>
+
+
+
+##### **(A.1)** Poisson Regression: AIDS 데이터 
+
+<br>
+
+참고 : RDA. pp 217-219
+
+<br>
+
+
+```{r}
+# R
+
+x <- 1:14
+y <- c(0,1,2,3,1,4,9,18,23,31,20,25,37,45)
+
+out <- glm(y~x,family=poisson)
+
+summary(out)
+```
+
+<br>
+
+```{r}
+# R
+
+fit <- fitted(out)  
+
+dxy=tibble(x=x,y=y,f=fit)  
+
+ggplot(dxy) + 
+  geom_point(aes(x,y)) + 
+  geom_line(aes(x,f),color='red')
+```
+
+    
+<br> <br>
+
+
+
+##### **(A.2)** Poisson Regression: InsectSprays
+
+<br>
+
+
+```{r}
+library(tidyverse,quietly=T)
+```
+
+
+```
+{r}
+write_csv(InsectSprays, "c:/temp/InsectSprays.csv")
+```
+
+```{r}
+ggplot(InsectSprays)+
+  geom_boxplot(aes(spray,count,col=spray))+
+  geom_jitter(aes(spray,count),
+              size=0.8, alpha=0.6, width=0.08)
+
+```
+
+```{r}
+
+out = glm(count~.,poisson,InsectSprays)
+```
+
+```{r}
+coef(out)
+```
+
+
+```{r}
+summary(out)
+```
+
+```{r}
+anova(out)
+```
+
+
+```
+{r}
+plot(out)
+```
+
+<br><br>
+
+
+##### **(A.3)** Binomial Regression: 담배나방 데이터 
+
+<br>
+
+참고 : RDA. pp 254-258 
+
+<br>
+
+![담배나방 데이터](ref/TB.png)
+
+<br>
+
+```{r}
+# R
+
+log_dose   =   rep(0:5,2)
+log_dose_2 =   log_dose - 2
+ndead      =   c(1,4,9,13,18,20,0,2,6,10,12,16)
+sex        =   factor(rep(c('M','F'), e=6))
+
+dfx        =   data.frame(sex, ndead, log_dose, log_dose_2)
+
+dfx
+```
+
+<br>
+
+```{r}
+# R
+
+count = cbind( ndead, 20-ndead )
+
+out_A = glm(count~sex*log_dose, family=binomial, data=dfx)
+out_B = glm(count~sex*log_dose_2, family=binomial, data=dfx)
+out_C = glm(count~sex+log_dose, family=binomial, data=dfx)
+out_D = glm(count~sex+log_dose_2, family=binomial, data=dfx)
+
+AIC(out_A)
+AIC(out_B)
+AIC(out_C)
+AIC(out_D)
+
+```
+
+<br>
+
+```{r}
+summary(out_A)
+```
+
+<br>
+
+```{r}
+summary(out_C)
+```
+
+<br>
+
+```{r}
+
+# a*b   a+b+a:b
+
+glm(count~sex*log_dose, family=binomial, data=dfx)
+
+```
+<br>
+
+```{r}
+glm(count~sex+log_dose, family=binomial, data=dfx)
+
+```
+<br>
+
+```{r} 
+
+logit <- function(p) log(p/(1-p)) 
+
+# R
+new <- data.frame( log_dose   = rep(seq( 0,5,l=51),2), 
+                   log_dose_2 = rep(seq(-2,3,l=51),2),
+                    sex        = factor(rep(c('M','F'), e=51) ) 
+                )
+
+fit_A = predict(out_A, newdata=new, type="response")
+prd_A = predict(out_A, newdata=new, type="link")
+
+fit_A[1:5]
+logit(fit_A[1:5])
+prd_A[1:5]
+
+new[c( 1, 1+51),]
+new[c(21,21+51),]
+```
+
+<br>
+
+```{r, message=F, warning=F}
+# R
+
+draw <- function(lm_model, shift=FALSE, prob=TRUE){
+  
+   rate    =   dfx$ndead/20 
+   rate    =   if(prob) rate else logit( rate )
+   datax   =   data.frame( dfx, rate )
+   
+   scale   =   if(prob) "response" else "link"
+   fit     =   predict(lm_model, newdata=new, type=scale)
+   
+   new_x   =   data.frame(new,fit)
+   pos_0   =   if(!shift) c(1, 1+51) else c(21, 21+51) 
+   new_x_0 =   new_x[pos_0,]
+   
+   legend   =   if(prob) c(0.15,0.7) else 'none'
+   
+   if(!shift){
+           ggplot(data=datax) + 
+           geom_point(aes(log_dose,rate,col=sex)) +
+           geom_line(data=new_x,  aes(log_dose,fit, col=sex)) +
+           geom_line(data=new_x_0,
+                     aes(log_dose,fit),col="red",size=2) +
+           theme(legend.position=legend)
+   } else{
+           ggplot(data=datax) + 
+           geom_point(aes(log_dose_2, rate,col=sex)) +
+           geom_line(data=new_x,  aes(log_dose_2,fit, col=sex)) +
+           geom_line(data=new_x_0,
+                     aes(log_dose_2,fit),col="red", size=2)+
+           theme(legend.position='none')   
+   }
+}
+
+```
+
+
+<br>
+
+
+* 다음에서 A,B 두 모형의 차이는 무엇이고, 왜 그런 결과가 나오는가?
+
+<br>
+
+```{r, message=F, warning=F}
+# R
+
+# log_dose_2 = log_dose -2
+# out_A : count_worm ~ sex*log_dose 
+# out_B : count_worm ~ sex*log_dose_2 
+
+
+library(patchwork)
+
+(draw(out_A)+draw( out_B, shift=T))/(
+  draw( out_A, prob=F)+draw( out_B, shift=T, prob=F))
+  
+```
+
+<br>
+
+```{r}
+# R
+
+summary(out_A)
+```
+
+<br>
+
+```{r}
+summary(out_B)
+```
+
+<br>
+
+* 모형선택에서 T-test 는 그냥 참고자료일 뿐이다
+
+* 모형에서 교호작용 sex:log_dose 의 의미는 무엇인가?
+
+<br>
+
+```{r}
+( draw( out_A)+draw( out_C))/
+  ( draw( out_A, prob=F)+draw( out_C, prob=F))
+```
+
+<br>
+
+<br>
+
+* 모형 C, D 는 다른 모형인가 ? 같은 모형인가?
+
+* 그 차이는 무엇인가?
+
+<br>
+
+```{r}
+( draw( out_C ) + draw( out_D, shift=T ))/
+  ( draw( out_C, prob=F ) + draw( out_D, shift=T, prob=F ))
+
+```
+
+
+<br>
+<br>
+
+```{r}
+# R
+
+summary(out_C)
+```
+
+<br>
+
+```{r}
+summary(out_D)
+```
+
+<br>
+
+* 모형 A,B,C,D 중에서 어떤 모형이 더 좋은 모형인가?
+
+
+<br> <br>
+  
+##### **(A.4)** Binary Classification: Pima.tr 데이터
+
+<br>
+
+참고 : RDA. pp 216-217 
+
+<br>
+
+
+```{r}
+dim(faraway::pima)
+dim(MASS::Pima.tr)
+dim(MASS::Pima.tr2)
+dim(na.omit(MASS::Pima.tr2))
+dim(MASS::Pima.te)
+```
+
+<br>
+
+```{r}
+pima <- MASS::Pima.tr
+
+dim(pima)
+names(pima)
+head(pima)
+```
+
+<br>
+
+```{r}
+ggplot(pima)+
+  geom_boxplot(aes(glu,type,col=type))+
+  geom_point(aes(glu,type,col=type), size=1, alpha=0.4)
+```
+
+<br>
+
+```{r}
+( r_pima <- glm(type~glu, binomial, pima) )
+
+gsx    <- with(pima, seq( min(glu), max(glu),l= 200))
+df_glu <- data.frame(glu=gsx)
+prd    <- predict(r_pima,newdata=df_glu,type="response")
+
+ggplot()+
+  geom_point(data=pima,aes(glu,type,col=type),alpha=0.4)+
+  geom_line(aes(gsx,prd+1),col="blue")+
+  theme(legend.position='none')
+```
+
+<br>
+
+* step 함수를 이용하여 BIC 가 낮은 부모형(submodel)을 찾기
+
+<br>
+
+```{r}
+out = step(glm(type~.,binomial,pima),k=log(nrow(pima)),trace=0)
+```
+
+<br>
+
+```{r}
+summary(out)
+```
+
+
+<br>
+
+```{r}
+eta    <- predict(out,type="link")
+prd    <- predict(out, type="response")
+
+ggplot()+
+  geom_point(data=pima,aes(eta,type,col=type),alpha=0.4)+
+  geom_line(aes(eta,prd+1),col="blue")+
+  theme(legend.position='none')
+```
+
+<br> <br>
+  
+  
+##### **(A.5)** Binary Classification: crabs 데이터
+
+<br>
+
+참고 : RDA. pp 258-260
+
+<br>
+
+
+```{r}
+library(MASS)
+
+names(crabs) <- tolower(names(crabs))
+```
+
+<br>
+
+```{r}
+head(crabs)
+```
+
+<br>
+
+```{r}
+levels(crabs$sp)
+( r_crabs <- glm(sp~cw+cl, binomial, crabs)  )
+```
+
+<br>
+
+```{r}
+library(tidyverse)
+library(patchwork)
+library(scales)
+
+y    <- as.numeric(crabs$sp)-1
+eta  <- predict(r_crabs,type="link")
+x    <- seq(min(eta),max(eta),l=400)
+prob <- exp(x)/(1+exp(x))
+
+pp1 <- ggplot(crabs,aes(cw,cl,col=sp))+
+       geom_point(size=1)+
+       scale_color_manual(values=hue_pal()(2)[c(2,1)])
+
+pp2 <- ggplot()+
+       geom_point(aes(eta,y,col=factor(y)),alpha=0.2)+
+       geom_line(aes(x,prob))+
+       labs(x="linear predictor",y="probability")+
+       scale_color_manual(values=hue_pal()(2)[c(2,1)])+
+       theme(legend.position='none')
+  
+pp1 + pp2 + plot_layout(guides = 'collect')
+
+```
+
+<br> <br>
+
+-------------------------------
+-------------------------------
+
+<br> 
